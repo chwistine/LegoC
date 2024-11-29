@@ -1,216 +1,230 @@
-import re
 import tkinter as tk
-from tkinter import messagebox, scrolledtext
+from tkinter import scrolledtext
 
+# Enum-like class for Token Types
+class TokenType:
+    KEYWORD = 'KEYWORD'
+    IDENTIFIER = 'IDENTIFIER'
+    INTEGER_LITERAL = 'INTEGER_LITERAL'
+    FLOAT_LITERAL = 'FLOAT_LITERAL'
+    STRING_LITERAL = 'STRING_LITERAL'
+    OPERATOR = 'OPERATOR'
+    PUNCTUATOR = 'PUNCTUATOR'
+    UNKNOWN = 'UNKNOWN'
+
+
+# Token class to hold the token type and value
 class Token:
-    def __init__(self, type, value):
-        self.type = type
+    def __init__(self, token_type, value):
+        self.type = token_type
         self.value = value
 
-    def __repr__(self):
-        return f"Token({self.type}, {self.value})"
 
-class Lexer:
-    def __init__(self, code):
-        self.code = code
-        self.tokens = []
-        self.current_pos = 0
+# LexicalAnalyzer class to tokenize the input source code
+class LexicalAnalyzer:
+    def __init__(self, source_code):
+        self.input = source_code
+        self.position = 0
+        self.keywords = {
+            "Build": TokenType.KEYWORD,
+            "Destroy": TokenType.KEYWORD,
+            "Pane": TokenType.KEYWORD,
+            "Link": TokenType.KEYWORD,
+            "Display": TokenType.KEYWORD,
+            "Rebrick": TokenType.KEYWORD
+        }
+
+    def is_whitespace(self, c):
+        return c in (' ', '\t', '\n', '\r')
+
+    def is_alpha(self, c):
+        return c.isalpha()
+
+    def is_digit(self, c):
+        return c.isdigit()
+
+    def is_alphanumeric(self, c):
+        return c.isalnum()
+
+    def get_next_word(self):
+        start = self.position
+        while self.position < len(self.input) and self.is_alphanumeric(self.input[self.position]):
+            self.position += 1
+        return self.input[start:self.position]
+
+    def get_next_number(self):
+        start = self.position
+        has_decimal = False
+        while self.position < len(self.input) and (self.is_digit(self.input[self.position]) or self.input[self.position] == '.'):
+            if self.input[self.position] == '.':
+                if has_decimal:
+                    break
+                has_decimal = True
+            self.position += 1
+        return self.input[start:self.position]
 
     def tokenize(self):
-        token_specs = [
-            ('NUMBER', r'\d+(\.\d+)?'),  # Integer or float
-            ('STRING', r'"[^"]*"'),     # String literal
-            ('KEYWORD', r'\b(Base|Broke|Bubble|Build|Change|Con|Const|Create|Def|Destroy|Display|Do|Else|Elseif|False|Flip|For|Ifsnap|Link|Pane|Piece|Rebrick|Revoid|Set|Subs|True|While)\b'),  # Lego-C keywords
-            ('OPERATOR', r'[+\-*/=<>!~&|]'),  # Operators
-            ('IDENTIFIER', r'[a-z][a-zA-Z0-9_]{0,19}'),  # Identifiers
-            ('NEWLINE', r'\n'),         # Newline
-            ('SKIP', r'[ \t]+'),        # Whitespace
-            ('COMMENT', r'##.*'),       # Single-line comments
-        ]
+        tokens = []
+        self.position = 0  # Reset position for each analysis
 
-        token_regex = '|'.join(f'(?P<{name}>{pattern})' for name, pattern in token_specs)
-        self.tokens = []
+        while self.position < len(self.input):
+            current_char = self.input[self.position]
 
-        for mo in re.finditer(token_regex, self.code):
-            kind = mo.lastgroup
-            value = mo.group()
-            if kind in ('SKIP', 'COMMENT', 'NEWLINE'):
+            if self.is_whitespace(current_char):
+                self.position += 1
                 continue
-            self.tokens.append(Token(kind, value))
 
-        return self.tokens
+            if self.is_alpha(current_char):
+                word = self.get_next_word()
+                if word in self.keywords:
+                    tokens.append(Token(TokenType.KEYWORD, word))
+                else:
+                    tokens.append(Token(TokenType.IDENTIFIER, word))
 
-class Parser:
-    def __init__(self, tokens):
-        self.tokens = tokens
-        self.current_token_index = 0
+            elif self.is_digit(current_char):
+                number = self.get_next_number()
+                if '.' in number:
+                    tokens.append(Token(TokenType.FLOAT_LITERAL, number))
+                else:
+                    tokens.append(Token(TokenType.INTEGER_LITERAL, number))
 
-    def parse(self):
-        ast = []
-        while self.current_token_index < len(self.tokens):
-            statement = self.parse_statement()
-            if statement is not None:
-                ast.append(statement)
+            elif current_char == '"':  # Start of a string literal
+                start = self.position
+                self.position += 1
+                while self.position < len(self.input) and self.input[self.position] != '"':
+                    self.position += 1
+                if self.position >= len(self.input):  # Missing closing quote
+                    tokens.append(Token(TokenType.UNKNOWN, self.input[start:]))
+                else:
+                    self.position += 1  # Include the closing quote
+                    tokens.append(Token(TokenType.STRING_LITERAL, self.input[start:self.position]))
+
+            elif current_char in ('+', '-', '*', '/'):
+                tokens.append(Token(TokenType.OPERATOR, current_char))
+                self.position += 1
+
+            elif current_char in ('(', ')', '{', '}', ';'):
+                tokens.append(Token(TokenType.PUNCTUATOR, current_char))
+                self.position += 1
+
             else:
-                # If no valid statement is found, move to the next token to prevent infinite loops.
-                self.current_token_index += 1
-        return ast
+                tokens.append(Token(TokenType.UNKNOWN, current_char))
+                self.position += 1
 
-    def match(self, *expected_types):
-        if self.current_token_index < len(self.tokens):
-            current_token = self.tokens[self.current_token_index]
-            if current_token.type in expected_types:
-                self.current_token_index += 1
-                return current_token
-        return None
-
-    def parse_statement(self):
-        if self.current_token_index < len(self.tokens):
-            if self.tokens[self.current_token_index].value == 'Display':
-                return self.parse_display_statement()
-            elif self.tokens[self.current_token_index].type == 'IDENTIFIER':
-                return self.parse_assignment()
-            elif self.tokens[self.current_token_index].value == 'Broke':
-                self.match('KEYWORD')  # Consume 'Broke'
-                return ('break_statement', None)
-        return None
-
-    def parse_display_statement(self):
-        self.match('KEYWORD')  # Match 'Display'
-        expression = self.parse_expression()
-        if expression:
-            return ('display_statement', expression)
-        else:
-            raise SyntaxError("Expected an expression after 'Display'.")
-
-    def parse_assignment(self):
-        identifier = self.match('IDENTIFIER')
-        if not identifier:
-            raise SyntaxError("Expected an identifier for assignment.")
-        operator = self.match('OPERATOR')
-        if not operator or operator.value != '=':
-            raise SyntaxError("Expected '=' in assignment.")
-        expression = self.parse_expression()
-        if expression:
-            return ('assignment', identifier.value, expression)
-        else:
-            raise SyntaxError("Expected an expression after '='.")
-
-    def parse_expression(self):
-        token = self.match('NUMBER', 'STRING', 'IDENTIFIER')
-        if token:
-            return token
-        return None
+        return tokens
 
 
-class Interpreter:
-    def __init__(self, ast):
-        self.ast = ast
-        self.variables = {}
+# Error detection functions
+def validate_operator_placement(tokens):
+    errors = []
+    for i, token in enumerate(tokens):
+        if token.type == TokenType.OPERATOR:
+            if i == 0 or i == len(tokens) - 1 or \
+               (tokens[i - 1].type not in {TokenType.IDENTIFIER, TokenType.INTEGER_LITERAL, TokenType.FLOAT_LITERAL} or
+                tokens[i + 1].type not in {TokenType.IDENTIFIER, TokenType.INTEGER_LITERAL, TokenType.FLOAT_LITERAL}):
+                errors.append(f"Invalid operator placement near '{token.value}' at position {i}.")
+    return errors
 
-    def interpret(self):
-        output = []
-        for node in self.ast:
-            try:
-                node_type = node[0]
-                if node_type == 'display_statement':
-                    value = self.evaluate_expression(node[1])
-                    output.append(str(value))
-                elif node_type == 'assignment':
-                    var_name = node[1]
-                    value = self.evaluate_expression(node[2])
-                    self.variables[var_name] = value
-                elif node_type == 'break_statement':
-                    output.append("Break encountered.")
-            except Exception as e:
-                output.append(f"Error in execution: {str(e)}")
-        return output
+def validate_return_value(tokens):
+    errors = []
+    for i, token in enumerate(tokens):
+        if token.type == TokenType.KEYWORD and token.value == "Rebrick":
+            if i == len(tokens) - 1 or tokens[i + 1].type not in {TokenType.INTEGER_LITERAL, TokenType.IDENTIFIER}:
+                errors.append(f"Invalid return value after 'Rebrick' at position {i}.")
+    return errors
 
-    def evaluate_expression(self, token):
-        if token.type == 'NUMBER':
-            return float(token.value)
-        elif token.type == 'STRING':
-            return token.value.strip('"')
-        elif token.type == 'IDENTIFIER':
-            return self.variables.get(token.value, None)
-        return None
+def validate_closing_quotes(tokens):
+    errors = []
+    for token in tokens:
+        if token.type == TokenType.UNKNOWN and '"' in token.value:
+            errors.append(f"Missing closing quote in string: {token.value}")
+    return errors
 
-class CompilerGUI:
-    def __init__(self, master):
-        self.master = master
-        master.title("Lego-C Compiler")
-        master.geometry("800x600")
 
-        self.code_label = tk.Label(master, text="Enter Your Lego-C Code:")
-        self.code_label.pack(pady=5)
+# GUI functions
+def update_analysis(event=None):
+    source_code = text_input.get("1.0", "end-1c")
+    lexer = LexicalAnalyzer(source_code)
+    tokens = lexer.tokenize()
 
-        self.code_input = scrolledtext.ScrolledText(master, height=10, width=80)
-        self.code_input.pack(pady=10)
+    # Clear the panes
+    lexeme_text.delete("1.0", "end")
+    token_text.delete("1.0", "end")
+    error_text.delete("1.0", "end")
+    program_text.delete("1.0", "end")
 
-        button_frame = tk.Frame(master)
-        button_frame.pack(pady=10)
+    # Display lexemes and tokens
+    for token in tokens:
+        lexeme_text.insert(tk.END, f"{token.value}\n")
+        token_text.insert(tk.END, f"{token.type}: {token.value}\n")
 
-        self.tokenize_btn = tk.Button(button_frame, text="Tokenize", command=self.tokenize_code)
-        self.tokenize_btn.pack(side=tk.LEFT, padx=5)
+    # Validate tokens and display errors
+    errors = []
+    errors.extend(validate_operator_placement(tokens))
+    errors.extend(validate_return_value(tokens))
+    errors.extend(validate_closing_quotes(tokens))
 
-        self.parse_btn = tk.Button(button_frame, text="Parse", command=self.parse_code)
-        self.parse_btn.pack(side=tk.LEFT, padx=5)
+    if errors:
+        for error in errors:
+            error_text.insert(tk.END, error + "\n")
+    else:
+        error_text.insert(tk.END, "No errors detected.\n")
+        program_text.insert(tk.END, "Program executed successfully.\n")
 
-        self.run_btn = tk.Button(button_frame, text="Run", command=self.run_code)
-        self.run_btn.pack(side=tk.LEFT, padx=5)
 
-        self.output_label = tk.Label(master, text="Output:")
-        self.output_label.pack(pady=5)
+# Set up the GUI window
+root = tk.Tk()
+root.title("Lego-C Compiler")
 
-        self.output = scrolledtext.ScrolledText(master, height=10, width=80)
-        self.output.pack(pady=10)
+# Frames for layout
+input_frame = tk.Frame(root)
+input_frame.pack(fill=tk.BOTH, pady=5)
 
-    def tokenize_code(self):
-        try:
-            code = self.code_input.get("1.0", tk.END).strip()
-            lexer = Lexer(code)
-            tokens = lexer.tokenize()
-            self.output.delete("1.0", tk.END)
-            self.output.insert(tk.END, "Tokens:\n")
-            for token in tokens:
-                self.output.insert(tk.END, f"{token}\n")
-        except Exception as e:
-            messagebox.showerror("Tokenization Error", str(e))
+output_frame = tk.Frame(root)
+output_frame.pack(fill=tk.BOTH, expand=True)
 
-    def parse_code(self):
-        try:
-            code = self.code_input.get("1.0", tk.END).strip()
-            lexer = Lexer(code)
-            tokens = lexer.tokenize()
-            parser = Parser(tokens)
-            ast = parser.parse()
-            self.output.delete("1.0", tk.END)
-            self.output.insert(tk.END, "Abstract Syntax Tree (AST):\n")
-            for node in ast:
-                self.output.insert(tk.END, f"{node}\n")
-        except Exception as e:
-            messagebox.showerror("Parsing Error", str(e))
+analysis_frame = tk.Frame(root)
+analysis_frame.pack(fill=tk.BOTH, expand=True)
 
-    def run_code(self):
-        try:
-            code = self.code_input.get("1.0", tk.END).strip()
-            lexer = Lexer(code)
-            tokens = lexer.tokenize()
-            parser = Parser(tokens)
-            ast = parser.parse()
-            interpreter = Interpreter(ast)
-            output = interpreter.interpret()
-            self.output.delete("1.0", tk.END)
-            self.output.insert(tk.END, "Program Output:\n")
-            for line in output:
-                self.output.insert(tk.END, f"{line}\n")
-        except Exception as e:
-            messagebox.showerror("Execution Error", str(e))
+# Input pane
+label = tk.Label(input_frame, text="Enter Your Lego-C Code:")
+label.pack(anchor=tk.W, pady=5)
 
-def main():
-    root = tk.Tk()
-    compiler_gui = CompilerGUI(root)
-    root.mainloop()
+text_input = scrolledtext.ScrolledText(input_frame, width=80, height=10)
+text_input.pack(padx=5, pady=5, fill=tk.BOTH)
+text_input.bind("<KeyRelease>", update_analysis)
 
-if __name__ == "__main__":
-    main()
+# Lexemes and Tokens (Left Side)
+left_frame = tk.Frame(analysis_frame)
+left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+lexeme_label = tk.Label(left_frame, text="Lexemes:")
+lexeme_label.pack(anchor=tk.W, pady=5)
+
+lexeme_text = scrolledtext.ScrolledText(left_frame, width=40, height=15)
+lexeme_text.pack(padx=5, pady=5, fill=tk.BOTH)
+
+token_label = tk.Label(left_frame, text="Tokens:")
+token_label.pack(anchor=tk.W, pady=5)
+
+token_text = scrolledtext.ScrolledText(left_frame, width=40, height=15)
+token_text.pack(padx=5, pady=5, fill=tk.BOTH)
+
+# Errors and Program Output (Right Side)
+right_frame = tk.Frame(analysis_frame)
+right_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+error_label = tk.Label(right_frame, text="Errors:")
+error_label.pack(anchor=tk.W, pady=5)
+
+error_text = scrolledtext.ScrolledText(right_frame, width=40, height=15)
+error_text.pack(padx=5, pady=5, fill=tk.BOTH)
+
+program_label = tk.Label(right_frame, text="Program:")
+program_label.pack(anchor=tk.W, pady=5)
+
+program_text = scrolledtext.ScrolledText(right_frame, width=40, height=15)
+program_text.pack(padx=5, pady=5, fill=tk.BOTH)
+
+# Run the tkinter main loop
+root.mainloop()
