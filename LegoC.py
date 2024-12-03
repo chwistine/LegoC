@@ -5,9 +5,9 @@ from tkinter import scrolledtext
 class TokenType:
     KEYWORD = 'KEYWORD'
     IDENTIFIER = 'IDENTIFIER'
-    INTEGER_LITERAL = 'INTEGER_LITERAL'
-    FLOAT_LITERAL = 'FLOAT_LITERAL'
-    STRING_LITERAL = 'STRING_LITERAL'
+    INTEGER_LITERAL = 'Linklit'
+    FLOAT_LITERAL = 'Bubblelit'
+    STRING_LITERAL = 'Piecelit'
     OPERATOR = 'OPERATOR'
     PUNCTUATOR = 'PUNCTUATOR'
     UNKNOWN = 'UNKNOWN'
@@ -21,17 +21,39 @@ class Token:
 
 
 # LexicalAnalyzer class to tokenize the input source code
+# LexicalAnalyzer class to tokenize the input source code
 class LexicalAnalyzer:
     def __init__(self, source_code):
         self.input = source_code
         self.position = 0
         self.keywords = {
+            "Base": TokenType.KEYWORD,
+            "Broke": TokenType.KEYWORD,
+            "Bubble": TokenType.KEYWORD,
             "Build": TokenType.KEYWORD,
+            "Change": TokenType.KEYWORD,
+            "Con": TokenType.KEYWORD,
+            "Const": TokenType.KEYWORD,
+            "Create": TokenType.KEYWORD,
+            "Def": TokenType.KEYWORD,
             "Destroy": TokenType.KEYWORD,
-            "Pane": TokenType.KEYWORD,
-            "Link": TokenType.KEYWORD,
             "Display": TokenType.KEYWORD,
-            "Rebrick": TokenType.KEYWORD
+            "Do": TokenType.KEYWORD,
+            "Else": TokenType.KEYWORD,
+            "Elseif": TokenType.KEYWORD,
+            "False": TokenType.KEYWORD,
+            "Flip": TokenType.KEYWORD,
+            "For": TokenType.KEYWORD,
+            "Ifsnap": TokenType.KEYWORD,
+            "Link": TokenType.KEYWORD,
+            "Pane": TokenType.KEYWORD,
+            "Piece": TokenType.KEYWORD,
+            "Rebrick": TokenType.KEYWORD,
+            "Revoid": TokenType.KEYWORD,
+            "Set": TokenType.KEYWORD,
+            "Subs": TokenType.KEYWORD,
+            "True": TokenType.KEYWORD,
+            "While": TokenType.KEYWORD
         }
 
     def is_whitespace(self, c):
@@ -78,7 +100,7 @@ class LexicalAnalyzer:
             if self.is_alpha(current_char):
                 word = self.get_next_word()
                 if word in self.keywords:
-                    tokens.append(Token(TokenType.KEYWORD, word))
+                    tokens.append(Token(word, word))  # Keyword token type and value are the same
                 else:
                     tokens.append(Token(TokenType.IDENTIFIER, word))
                 lexemes.append(word)
@@ -122,6 +144,7 @@ class LexicalAnalyzer:
         return tokens, lexemes
 
 
+
 # Error detection functions
 def validate_operator_placement(tokens):
     errors = []
@@ -149,12 +172,7 @@ def validate_closing_quotes(tokens):
     return errors
 
 def validate_syntax(tokens):
-    errors = []
-    if not tokens or tokens[0].value != 'Build':
-        errors.append("Syntax Error: The program must start with 'Build'.")
-    if not tokens or tokens[-1].value != 'Destroy':
-        errors.append("Syntax Error: The program must end with 'Destroy'.")
-    return errors
+    return []  # No syntax errors are enforced
 
 
 # GUI components and functions
