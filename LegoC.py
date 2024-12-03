@@ -10,6 +10,7 @@ class TokenType:
     STRING_LITERAL = 'Piecelit'
     OPERATOR = 'OPERATOR'
     PUNCTUATOR = 'PUNCTUATOR'
+    SPACE = 'SPACE'  # Added SPACE type
     UNKNOWN = 'UNKNOWN'
 
 
@@ -21,39 +22,36 @@ class Token:
 
 
 # LexicalAnalyzer class to tokenize the input source code
-# LexicalAnalyzer class to tokenize the input source code
 class LexicalAnalyzer:
     def __init__(self, source_code):
         self.input = source_code
         self.position = 0
         self.keywords = {
-            "Base": TokenType.KEYWORD,
-            "Broke": TokenType.KEYWORD,
-            "Bubble": TokenType.KEYWORD,
             "Build": TokenType.KEYWORD,
+            "Destroy": TokenType.KEYWORD,
+            "Pane": TokenType.KEYWORD,
+            "Link": TokenType.KEYWORD,
+            "Display": TokenType.KEYWORD,
+            "Rebrick": TokenType.KEYWORD,
+            "Broke": TokenType.KEYWORD,
             "Change": TokenType.KEYWORD,
             "Con": TokenType.KEYWORD,
             "Const": TokenType.KEYWORD,
             "Create": TokenType.KEYWORD,
             "Def": TokenType.KEYWORD,
-            "Destroy": TokenType.KEYWORD,
-            "Display": TokenType.KEYWORD,
             "Do": TokenType.KEYWORD,
-            "Else": TokenType.KEYWORD,
-            "Elseif": TokenType.KEYWORD,
-            "False": TokenType.KEYWORD,
             "Flip": TokenType.KEYWORD,
-            "For": TokenType.KEYWORD,
             "Ifsnap": TokenType.KEYWORD,
-            "Link": TokenType.KEYWORD,
-            "Pane": TokenType.KEYWORD,
             "Piece": TokenType.KEYWORD,
-            "Rebrick": TokenType.KEYWORD,
+            "Put": TokenType.KEYWORD,
             "Revoid": TokenType.KEYWORD,
+            "Stable": TokenType.KEYWORD,
             "Set": TokenType.KEYWORD,
+            "Snap": TokenType.KEYWORD,
+            "Snapif": TokenType.KEYWORD,
             "Subs": TokenType.KEYWORD,
-            "True": TokenType.KEYWORD,
-            "While": TokenType.KEYWORD
+            "While": TokenType.KEYWORD,
+            "Wobble": TokenType.KEYWORD
         }
 
     def is_whitespace(self, c):
@@ -85,25 +83,159 @@ class LexicalAnalyzer:
             self.position += 1
         return self.input[start:self.position]
 
+class LexicalAnalyzer:
+    def __init__(self, source_code):
+        self.input = source_code
+        self.position = 0
+        self.keywords = {
+            "Build": TokenType.KEYWORD,
+            "Destroy": TokenType.KEYWORD,
+            "Pane": TokenType.KEYWORD,
+            "Link": TokenType.KEYWORD,
+            "Display": TokenType.KEYWORD,
+            "Rebrick": TokenType.KEYWORD,
+            "Broke": TokenType.KEYWORD,
+            "Change": TokenType.KEYWORD,
+            "Con": TokenType.KEYWORD,
+            "Const": TokenType.KEYWORD,
+            "Create": TokenType.KEYWORD,
+            "Def": TokenType.KEYWORD,
+            "Do": TokenType.KEYWORD,
+            "Flip": TokenType.KEYWORD,
+            "Ifsnap": TokenType.KEYWORD,
+            "Piece": TokenType.KEYWORD,
+            "Put": TokenType.KEYWORD,
+            "Revoid": TokenType.KEYWORD,
+            "Stable": TokenType.KEYWORD,
+            "Set": TokenType.KEYWORD,
+            "Snap": TokenType.KEYWORD,
+            "Snapif": TokenType.KEYWORD,
+            "Subs": TokenType.KEYWORD,
+            "While": TokenType.KEYWORD,
+            "Wobble": TokenType.KEYWORD
+        }
+
+    def is_whitespace(self, c):
+        return c in (' ', '\t', '\n', '\r')
+
+    def is_alpha(self, c):
+        return c.isalpha()
+
+    def is_digit(self, c):
+        return c.isdigit()
+
+    def is_alphanumeric(self, c):
+        return c.isalnum()
+
+    def is_underscore(self, c):
+        return c == "_"
+
+    def get_next_word(self):
+        start = self.position
+        word = self.input[start:self.position + 1]
+
+        if not self.is_alpha(self.input[start]) or not self.input[start].islower():
+            return ""  # Return an empty string for invalid identifier starting character
+
+        self.position += 1  # Start of valid word
+        while self.position < len(self.input) and (self.is_alphanumeric(self.input[self.position]) or self.is_underscore(self.input[self.position])):
+            self.position += 1
+        return self.input[start:self.position]
+
+class LexicalAnalyzer:
+    def __init__(self, source_code):
+        self.input = source_code
+        self.position = 0
+        self.keywords = {
+            "Build": TokenType.KEYWORD,
+            "Destroy": TokenType.KEYWORD,
+            "Pane": TokenType.KEYWORD,
+            "Link": TokenType.KEYWORD,
+            "Display": TokenType.KEYWORD,
+            "Rebrick": TokenType.KEYWORD,
+            "Broke": TokenType.KEYWORD,
+            "Change": TokenType.KEYWORD,
+            "Con": TokenType.KEYWORD,
+            "Const": TokenType.KEYWORD,
+            "Create": TokenType.KEYWORD,
+            "Def": TokenType.KEYWORD,
+            "Do": TokenType.KEYWORD,
+            "Flip": TokenType.KEYWORD,
+            "Ifsnap": TokenType.KEYWORD,
+            "Piece": TokenType.KEYWORD,
+            "Put": TokenType.KEYWORD,
+            "Revoid": TokenType.KEYWORD,
+            "Stable": TokenType.KEYWORD,
+            "Set": TokenType.KEYWORD,
+            "Snap": TokenType.KEYWORD,
+            "Snapif": TokenType.KEYWORD,
+            "Subs": TokenType.KEYWORD,
+            "While": TokenType.KEYWORD,
+            "Wobble": TokenType.KEYWORD
+        }
+
+    def is_whitespace(self, c):
+        return c in (' ', '\t', '\n', '\r')
+
+    def is_alpha(self, c):
+        return c.isalpha()
+
+    def is_digit(self, c):
+        return c.isdigit()
+
+    def is_alphanumeric(self, c):
+        return c.isalnum()
+
+    def is_underscore(self, c):
+        return c == "_"
+
+    def get_next_word(self):
+        start = self.position
+        word = self.input[start:self.position + 1]
+
+        if not self.is_alpha(self.input[start]) or not self.input[start].islower():
+            return ""  # Return an empty string for invalid identifier starting character
+
+        self.position += 1  # Start of valid word
+        while self.position < len(self.input) and (self.is_alphanumeric(self.input[self.position]) or self.is_underscore(self.input[self.position])):
+            self.position += 1
+        return self.input[start:self.position]
+
     def tokenize(self):
         tokens = []
         self.position = 0  # Reset position for each analysis
         lexemes = []
+        errors = []
 
         while self.position < len(self.input):
             current_char = self.input[self.position]
 
+            if current_char == ' ':
+                # If a space is encountered, treat it as a "SPACE" token and show "space" in the token output
+                tokens.append(Token(TokenType.SPACE, "space"))
+                lexemes.append("")  # Empty lexeme for spaces
+                self.position += 1
+                continue
+
             if self.is_whitespace(current_char):
+                # Skip tabs, newlines, and other whitespace (do not display in lexemes or tokens)
                 self.position += 1
                 continue
 
             if self.is_alpha(current_char):
                 word = self.get_next_word()
-                if word in self.keywords:
-                    tokens.append(Token(word, word))  # Keyword token type and value are the same
+
+                # Check if the identifier is valid (starts with lowercase and contains only allowed characters)
+                if len(word) > 0 and word[0].islower() and all(c.islower() or c.isupper() or c.isdigit() or c == "_" for c in word[1:]):
+                    if word in self.keywords:
+                        tokens.append(Token(TokenType.KEYWORD, word))
+                        lexemes.append(word)
+                    else:
+                        tokens.append(Token(TokenType.IDENTIFIER, word))
+                        lexemes.append(word)
                 else:
-                    tokens.append(Token(TokenType.IDENTIFIER, word))
-                lexemes.append(word)
+                    errors.append(f"Lexical error: Invalid identifier '{word}' at position {self.position}.")
+                    continue  # Skip this token (don't add it to the tokens list)
 
             elif self.is_digit(current_char):
                 number = self.get_next_number()
@@ -119,12 +251,11 @@ class LexicalAnalyzer:
                 while self.position < len(self.input) and self.input[self.position] != '"':
                     self.position += 1
                 if self.position >= len(self.input):  # Missing closing quote
-                    tokens.append(Token(TokenType.UNKNOWN, self.input[start:]))
-                    lexemes.append(self.input[start:])
+                    tokens.append(Token(TokenType.UNKNOWN, self.input[start:]))  # Include error message
                 else:
                     self.position += 1  # Include the closing quote
                     tokens.append(Token(TokenType.STRING_LITERAL, self.input[start:self.position]))
-                    lexemes.append(self.input[start:self.position])
+                lexemes.append(self.input[start:self.position])
 
             elif current_char in ('+', '~', '*', '/'):
                 tokens.append(Token(TokenType.OPERATOR, current_char))
@@ -132,7 +263,8 @@ class LexicalAnalyzer:
                 self.position += 1
 
             elif current_char in ('(', ')', '{', '}', ';'):
-                tokens.append(Token(TokenType.PUNCTUATOR, current_char))
+                # Directly handle symbols like () {} ; as SYMBOL token type
+                tokens.append(Token(TokenType.PUNCTUATOR, current_char))  # Use PUNCTUATOR here
                 lexemes.append(current_char)
                 self.position += 1
 
@@ -141,9 +273,7 @@ class LexicalAnalyzer:
                 lexemes.append(current_char)
                 self.position += 1
 
-        return tokens, lexemes
-
-
+        return tokens, lexemes, errors
 
 # Error detection functions
 def validate_operator_placement(tokens):
@@ -206,23 +336,35 @@ class TextWithLineNumbers(tk.Frame):
 def update_analysis(event=None):
     source_code = text_with_line_numbers.text.get("1.0", "end-1c")
     lexer = LexicalAnalyzer(source_code)
-    tokens, lexemes = lexer.tokenize()
+    tokens, lexemes, errors = lexer.tokenize()  # Get errors from the lexer
 
-    lexeme_text.delete("1.0", "end")
-    token_text.delete("1.0", "end")
-    error_text.delete("1.0", "end")
-    program_text.delete("1.0", "end")
+    lexeme_text.delete("1.0", "end-1c")
+    token_text.delete("1.0", "end-1c")
+    error_text.delete("1.0", "end-1c")
+    program_text.delete("1.0", "end-1c")
 
-    for token in tokens:
-        token_text.insert(tk.END, f"{token.type}\n")
-    for lexeme in lexemes:
-        lexeme_text.insert(tk.END, f"{lexeme}\n")
-
-    errors = []
-    errors.extend(validate_operator_placement(tokens))
-    errors.extend(validate_return_value(tokens))
-    errors.extend(validate_closing_quotes(tokens))
-    errors.extend(validate_syntax(tokens))
+    for token, lexeme in zip(tokens, lexemes):
+        if token.type == TokenType.PUNCTUATOR:
+            if lexeme == "space":
+                # For spaces, display the word "Space" in the token output
+                lexeme_text.insert(tk.END, "\n")
+                token_text.insert(tk.END, "Space\n")
+                continue  # Skip displaying anything for spaces in lexeme
+            elif lexeme in ("\n", "\t"):  # Skip newlines and tabs
+                continue  # Do not display anything for newlines or tabs in lexeme or token output
+            else:
+                # For other punctuators, display the lexeme exactly as it is
+                lexeme_text.insert(tk.END, f"{lexeme}\n")
+                token_text.insert(tk.END, f"{lexeme}\n")
+        else:
+            # Insert lexemes normally for other token types (keywords, identifiers, literals, etc.)
+            lexeme_text.insert(tk.END, f"{lexeme}\n")
+            
+            # If the token is a keyword, display the keyword value instead of its type
+            if token.type == TokenType.KEYWORD:
+                token_text.insert(tk.END, f"{token.value}\n")
+            else:
+                token_text.insert(tk.END, f"{token.type}\n")
 
     if errors:
         for error in errors:
