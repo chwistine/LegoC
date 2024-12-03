@@ -72,8 +72,6 @@ class LexicalAnalyzer:
             current_char = self.input[self.position]
 
             if self.is_whitespace(current_char):
-                tokens.append(Token(TokenType.UNKNOWN, "space"))
-                lexemes.append("space")
                 self.position += 1
                 continue
 
@@ -152,30 +150,25 @@ def validate_closing_quotes(tokens):
 
 def validate_syntax(tokens):
     errors = []
-    # Check if the first token is 'Build'
     if not tokens or tokens[0].value != 'Build':
         errors.append("Syntax Error: The program must start with 'Build'.")
-    # Check if the last token is 'Destroy'
     if not tokens or tokens[-1].value != 'Destroy':
         errors.append("Syntax Error: The program must end with 'Destroy'.")
     return errors
 
 
-# GUI components with synchronized line numbers
+# GUI components and functions
 class TextWithLineNumbers(tk.Frame):
     def __init__(self, master=None, **kwargs):
         super().__init__(master, **kwargs)
 
-        # Line numbers panel
         self.line_numbers = tk.Text(self, width=4, padx=3, takefocus=0, border=0, background="lightgray", state="disabled", wrap="none")
         self.line_numbers.pack(side="left", fill="y")
 
-        # Main text widget
         self.text = scrolledtext.ScrolledText(self, wrap="none")
         self.text.pack(side="right", fill="both", expand=True)
 
-        # Bind events to update line numbers and scrolling
-        self.text.bind("<KeyPress>", self._update_line_numbers)  # Updated for KeyPress event
+        self.text.bind("<KeyPress>", self._update_line_numbers)
         self.text.bind("<MouseWheel>", self._update_line_numbers)
         self.text.bind("<ButtonRelease>", self._update_line_numbers)
         self.text.bind("<Configure>", self._update_line_numbers)
@@ -184,39 +177,34 @@ class TextWithLineNumbers(tk.Frame):
         self.line_numbers.config(state="normal")
         self.line_numbers.delete("1.0", "end")
 
-        # Add line numbers based on the text widget content
-        lines = self.text.index("end-1c").split(".")[0]  # Get total number of lines
+        lines = self.text.index("end-1c").split(".")[0]
         line_numbers = "\n".join(str(i) for i in range(1, int(lines) + 1))
         self.line_numbers.insert("1.0", line_numbers)
 
         self.line_numbers.config(state="disabled")
-        # Sync scrolling with text widget
         self.line_numbers.yview_moveto(self.text.yview()[0])
 
 
-# GUI functions for analyzing code
 def update_analysis(event=None):
-    source_code = text_with_line_numbers.text.get("1.0", "end-1c")  # Correctly access text content
+    source_code = text_with_line_numbers.text.get("1.0", "end-1c")
     lexer = LexicalAnalyzer(source_code)
     tokens, lexemes = lexer.tokenize()
 
-    # Clear the output panes
     lexeme_text.delete("1.0", "end")
     token_text.delete("1.0", "end")
     error_text.delete("1.0", "end")
     program_text.delete("1.0", "end")
 
-    # Display lexemes and tokens
     for token in tokens:
         token_text.insert(tk.END, f"{token.type}\n")
     for lexeme in lexemes:
         lexeme_text.insert(tk.END, f"{lexeme}\n")
 
-    # Error detection and display
     errors = []
     errors.extend(validate_operator_placement(tokens))
     errors.extend(validate_return_value(tokens))
     errors.extend(validate_closing_quotes(tokens))
+    errors.extend(validate_syntax(tokens))
 
     if errors:
         for error in errors:
@@ -226,11 +214,9 @@ def update_analysis(event=None):
         program_text.insert(tk.END, "Program output is ready for display.\n")
 
 
-# GUI layout
 root = tk.Tk()
 root.title("Lego-C Code Analyzer")
 
-# Input area (Lego-C code)
 input_frame = tk.Frame(root)
 input_frame.pack(fill=tk.BOTH, pady=5)
 
@@ -240,7 +226,6 @@ label.pack(side="top", anchor="w")
 text_with_line_numbers = TextWithLineNumbers(input_frame)
 text_with_line_numbers.pack(side="top", fill="both", expand=True, padx=5, pady=5)
 
-# Output area (Lexeme, Token, Errors, Program Output)
 output_frame = tk.Frame(root)
 output_frame.pack(fill=tk.BOTH, pady=5)
 
@@ -259,16 +244,15 @@ token_text.grid(row=1, column=1, padx=5, pady=5)
 error_label = tk.Label(output_frame, text="Errors:")
 error_label.grid(row=0, column=2, padx=5, pady=5, sticky="w")
 
-error_text = tk.Text(output_frame, width=25, height=10)
+error_text = tk.Text(output_frame, width=35, height=10)
 error_text.grid(row=1, column=2, padx=5, pady=5)
 
-program_label = tk.Label(output_frame, text="Program Output:")
+program_label = tk.Label(output_frame, text="Program:")
 program_label.grid(row=0, column=3, padx=5, pady=5, sticky="w")
 
-program_text = tk.Text(output_frame, width=25, height=10)
+program_text = tk.Text(output_frame, width=35, height=10)
 program_text.grid(row=1, column=3, padx=5, pady=5)
 
-# Button to analyze the code
-root.bind("<KeyRelease>", update_analysis)
+text_with_line_numbers.text.bind("<KeyRelease>", update_analysis)
 
 root.mainloop()
