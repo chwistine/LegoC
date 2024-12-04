@@ -54,30 +54,7 @@ class LexicalAnalyzer:
             "Wobble": TokenType.KEYWORD
         }
 
-    def is_whitespace(self, c):
-        return c in (' ', '\t', '\n', '\r')
-
-    def is_alpha(self, c):
-        return c.isalpha()
-
-    def is_digit(self, c):
-        return c.isdigit()
-
-    def is_alphanumeric(self, c):
-        return c.isalnum()
-
-    def is_underscore(self, c):
-        return c == "_"
-
-    def get_next_word(self):
-        start = self.position
-        word = self.input[start:self.position + 1]
-
-        while self.position < len(self.input) and (self.is_alphanumeric(self.input[self.position]) or self.is_underscore(self.input[self.position])):
-            self.position += 1
-
-        word = self.input[start:self.position]  # Update the word after the loop ends
-        return word
+    # Other helper methods (is_whitespace, is_alpha, etc.)
 
     def tokenize(self):
         tokens = []
@@ -89,31 +66,26 @@ class LexicalAnalyzer:
             current_char = self.input[self.position]
 
             if current_char == ' ':
-                # If a space is encountered, treat it as a "SPACE" token and show "space" in the token output
                 tokens.append(Token(TokenType.SPACE, "space"))
-                lexemes.append("")  # Empty lexeme for spaces
+                lexemes.append("")
                 self.position += 1
                 continue
 
             if self.is_whitespace(current_char):
-                # Skip tabs, newlines, and other whitespace (do not display in lexemes or tokens)
                 self.position += 1
                 continue
 
             if self.is_alpha(current_char):
                 word = self.get_next_word()
 
-                # Check if the identifier is valid (starts with lowercase and contains only allowed characters)
-                if word in self.keywords:
+                # If the first character is uppercase and it's not a keyword, treat it as an error
+                if word[0].isupper() and word not in self.keywords:
+                    tokens.append(Token(TokenType.UNKNOWN, word))
+                    errors.append(f"Lexical error: Identifier '{word}' starts with an uppercase letter.")
+                    lexemes.append(word)
+                elif word in self.keywords:
                     tokens.append(Token(TokenType.KEYWORD, word))
                     lexemes.append(word)
-                    
-                    # Check if 'Build' keyword is followed by space, newline or tab
-                    if word == "Build":
-                        if self.position < len(self.input):
-                            next_char = self.input[self.position]
-                            if next_char not in [' ', '\n', '\t']:
-                                errors.append(f"Lexical error")
                 else:
                     tokens.append(Token(TokenType.IDENTIFIER, word))
                     lexemes.append(word)
@@ -126,15 +98,15 @@ class LexicalAnalyzer:
                     tokens.append(Token(TokenType.INTEGER_LITERAL, number))
                 lexemes.append(number)
 
-            elif current_char == '"':  # Start of a string literal
+            elif current_char == '"':
                 start = self.position
                 self.position += 1
                 while self.position < len(self.input) and self.input[self.position] != '"':
                     self.position += 1
-                if self.position >= len(self.input):  # Missing closing quote
-                    tokens.append(Token(TokenType.UNKNOWN, self.input[start:]))  # Include error message
+                if self.position >= len(self.input):
+                    tokens.append(Token(TokenType.UNKNOWN, self.input[start:]))
                 else:
-                    self.position += 1  # Include the closing quote
+                    self.position += 1
                     tokens.append(Token(TokenType.STRING_LITERAL, self.input[start:self.position]))
                 lexemes.append(self.input[start:self.position])
 
@@ -144,8 +116,7 @@ class LexicalAnalyzer:
                 self.position += 1
 
             elif current_char in ('(', ')', '{', '}', ';'):
-                # Directly handle symbols like () {} ; as SYMBOL token type
-                tokens.append(Token(TokenType.PUNCTUATOR, current_char))  # Use PUNCTUATOR here
+                tokens.append(Token(TokenType.PUNCTUATOR, current_char))
                 lexemes.append(current_char)
                 self.position += 1
 
@@ -155,8 +126,6 @@ class LexicalAnalyzer:
                 self.position += 1
 
         return tokens, lexemes, errors
-
-
 
 # Error detection functions
 def validate_operator_placement(tokens):
