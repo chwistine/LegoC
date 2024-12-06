@@ -10,38 +10,37 @@ class TokenType:
     STRING_LITERAL = 'Piecelit'
     OPERATOR = 'OPERATOR'
     PUNCTUATOR = 'PUNCTUATOR'
-    SPACE = 'SPACE'  # Added SPACE type
     UNKNOWN = 'UNKNOWN'
 
-# Token class to hold the token type and value
 class Token:
     def __init__(self, token_type, value):
         self.type = token_type
         self.value = value
 
-# LexicalAnalyzer class to tokenize the input source code
 class LexicalAnalyzer:
     def __init__(self, source_code):
         self.input = source_code
         self.position = 0
-        self.keywords = {
+        self.keywords = {  # Keywords unchanged
+            "Base": TokenType.KEYWORD,
+            "Bubble": TokenType.KEYWORD,
             "Build": TokenType.KEYWORD,
-            "Destroy": TokenType.KEYWORD,
-            "Pane": TokenType.KEYWORD,
-            "Link": TokenType.KEYWORD,
-            "Display": TokenType.KEYWORD,
-            "Rebrick": TokenType.KEYWORD,
             "Broke": TokenType.KEYWORD,
             "Change": TokenType.KEYWORD,
             "Con": TokenType.KEYWORD,
             "Const": TokenType.KEYWORD,
             "Create": TokenType.KEYWORD,
             "Def": TokenType.KEYWORD,
+            "Destroy": TokenType.KEYWORD,
+            "Display": TokenType.KEYWORD,
             "Do": TokenType.KEYWORD,
             "Flip": TokenType.KEYWORD,
             "Ifsnap": TokenType.KEYWORD,
+            "Link": TokenType.KEYWORD,
+            "Pane": TokenType.KEYWORD,
             "Piece": TokenType.KEYWORD,
             "Put": TokenType.KEYWORD,
+            "Rebrick": TokenType.KEYWORD,
             "Revoid": TokenType.KEYWORD,
             "Stable": TokenType.KEYWORD,
             "Set": TokenType.KEYWORD,
@@ -53,7 +52,7 @@ class LexicalAnalyzer:
         }
 
     def is_whitespace(self, c):
-        return c in (' ', '\t', '\n', '\r')
+        return c.isspace()
 
     def is_alpha(self, c):
         return c.isalpha()
@@ -64,51 +63,65 @@ class LexicalAnalyzer:
     def is_alphanumeric(self, c):
         return c.isalnum()
 
-    def is_underscore(self, c):
-        return c == "_"
-
     def get_next_word(self):
         start = self.position
-        while self.position < len(self.input) and (self.is_alphanumeric(self.input[self.position]) or self.is_underscore(self.input[self.position])):
+        while self.position < len(self.input) and self.is_alphanumeric(self.input[self.position]):
             self.position += 1
         return self.input[start:self.position]
 
     def get_next_number(self):
         start = self.position
-        while self.position < len(self.input) and (self.input[self.position].isdigit() or self.input[self.position] == '.'):
+        has_decimal = False
+        while self.position < len(self.input) and (self.is_digit(self.input[self.position]) or self.input[self.position] == '.'):
+            if self.input[self.position] == '.':
+                if has_decimal:
+                    break
+                has_decimal = True
             self.position += 1
         return self.input[start:self.position]
+
+    def is_valid_identifier(self, word):
+        # Check length constraints
+        if not (1 <= len(word) <= 20):
+            return False
+
+        # Check first character is a lowercase letter
+        if not word[0].islower():
+            return False
+
+        # Check all other characters
+        if not all(c.isalnum() or c == '_' for c in word[1:]):
+            return False
+
+        # Check identifier does not end with a symbol
+        if word[-1] == '_':
+            return False
+
+        return True
 
     def tokenize(self):
         tokens = []
         lexemes = []
-        errors = []
+        self.position = 0  # Reset position for each analysis
 
         while self.position < len(self.input):
             current_char = self.input[self.position]
-
-            if current_char == ' ':
-                tokens.append(Token(TokenType.SPACE, "space"))
-                lexemes.append("")
-                self.position += 1
-                continue
 
             if self.is_whitespace(current_char):
                 self.position += 1
                 continue
 
-            if self.is_alpha(current_char):
+            if self.is_alpha(current_char):  # If the character is alphabetic
                 word = self.get_next_word()
-                if word in self.keywords:
-                    tokens.append(Token(TokenType.KEYWORD, word))
-                    lexemes.append(word)
-                else:
-                    if any(c.isupper() for c in word):
-                        errors.append(f"Lexical Error: '{word}' is undefined")
-                    tokens.append(Token(TokenType.IDENTIFIER, word))
-                    lexemes.append(word)
+                if word in self.keywords:  # Check if it is a keyword
+                    tokens.append(Token(word, word))  # Token value matches keyword
+                elif self.is_valid_identifier(word):  # Check if it's a valid identifier
+                    tokens.append(Token(TokenType.IDENTIFIER, word))  # Mark as IDENTIFIER
+                else:  # Otherwise, mark as unknown
+                    tokens.append(Token(TokenType.UNKNOWN, word))
+                lexemes.append(word)
 
-            elif self.is_digit(current_char):
+            elif self.is_digit(current_char):  # Process numbers
                 number = self.get_next_number()
                 if '.' in number:
                     tokens.append(Token(TokenType.FLOAT_LITERAL, number))
@@ -116,38 +129,37 @@ class LexicalAnalyzer:
                     tokens.append(Token(TokenType.INTEGER_LITERAL, number))
                 lexemes.append(number)
 
-            elif current_char == '"':
+            elif current_char == '"':  # Start of a string literal
                 start = self.position
                 self.position += 1
                 while self.position < len(self.input) and self.input[self.position] != '"':
                     self.position += 1
-                if self.position >= len(self.input):
-                    errors.append(f"Missing closing quote for string starting at position {start}")
+                if self.position >= len(self.input):  # Missing closing quote
                     tokens.append(Token(TokenType.UNKNOWN, self.input[start:]))
+                    lexemes.append(self.input[start:])
                 else:
-                    self.position += 1
+                    self.position += 1  # Include the closing quote
                     tokens.append(Token(TokenType.STRING_LITERAL, self.input[start:self.position]))
-                lexemes.append(self.input[start:self.position])
+                    lexemes.append(self.input[start:self.position])
 
-            elif current_char in ('+', '-', '*', '/'):
+            elif current_char in ('+', '-', '*', '/'):  # Operators
                 tokens.append(Token(TokenType.OPERATOR, current_char))
                 lexemes.append(current_char)
                 self.position += 1
 
-            elif current_char in ('(', ')', '{', '}', ';'):
+            elif current_char in ('(', ')', '{', '}', ';'):  # Punctuators
                 tokens.append(Token(TokenType.PUNCTUATOR, current_char))
                 lexemes.append(current_char)
                 self.position += 1
 
-            else:
-                errors.append(f"Unrecognized character '{current_char}' at position {self.position}")
+            else:  # Unknown characters
                 tokens.append(Token(TokenType.UNKNOWN, current_char))
                 lexemes.append(current_char)
                 self.position += 1
 
-        return tokens, lexemes, errors
+        return tokens, lexemes
 
-# GUI components and functions
+
 class TextWithLineNumbers(tk.Frame):
     def __init__(self, master=None, **kwargs):
         super().__init__(master, **kwargs)
@@ -158,7 +170,7 @@ class TextWithLineNumbers(tk.Frame):
         self.text = scrolledtext.ScrolledText(self, wrap="none")
         self.text.pack(side="right", fill="both", expand=True)
 
-        self.text.bind("<KeyPress>", self._update_line_numbers)
+        self.text.bind("<KeyRelease>", self._update_line_numbers)
         self.text.bind("<MouseWheel>", self._update_line_numbers)
         self.text.bind("<ButtonRelease>", self._update_line_numbers)
         self.text.bind("<Configure>", self._update_line_numbers)
@@ -174,26 +186,41 @@ class TextWithLineNumbers(tk.Frame):
         self.line_numbers.config(state="disabled")
         self.line_numbers.yview_moveto(self.text.yview()[0])
 
+def validate_syntax(tokens, keywords):
+    errors = []
+
+    for token in tokens:
+        if token.type == TokenType.UNKNOWN:
+            errors.append(f"Lexical Error: '{token.value}' is undefined")
+
+    return errors
+
 def update_analysis(event=None):
     source_code = text_with_line_numbers.text.get("1.0", "end-1c")
     lexer = LexicalAnalyzer(source_code)
-    tokens, lexemes, errors = lexer.tokenize()
-    
-    lexeme_text.delete("1.0", "end-1c")
-    token_text.delete("1.0", "end-1c")
-    error_text.delete("1.0", "end-1c")
-    program_text.delete("1.0", "end-1c")
-    
-    for token, lexeme in zip(tokens, lexemes):
+    tokens, lexemes = lexer.tokenize()
+
+    lexeme_text.delete("1.0", "end")
+    token_text.delete("1.0", "end")
+    error_text.delete("1.0", "end")
+
+    # Display lexemes and tokens
+    for lexeme in lexemes:
         lexeme_text.insert(tk.END, f"{lexeme}\n")
-        token_text.insert(tk.END, f"{token.type}\n")
-    
+
+    for token in tokens:
+        if token.type == TokenType.IDENTIFIER:
+            token_text.insert(tk.END, f"IDENTIFIER\n")
+        else:
+            token_text.insert(tk.END, f"{token.value}\n")
+
+    # Validate syntax
+    errors = validate_syntax(tokens, lexer.keywords)
     if errors:
         for error in errors:
-            error_text.insert(tk.END, f"{error}\n")
+            error_text.insert(tk.END, error + "\n")
     else:
         error_text.insert(tk.END, "No errors detected.\n")
-        program_text.insert(tk.END, "Program output is ready for display.\n")
 
 root = tk.Tk()
 root.title("Lego-C Code Analyzer")
@@ -205,7 +232,8 @@ label = tk.Label(input_frame, text="Enter Lego-C code:")
 label.pack(side="top", anchor="w")
 
 text_with_line_numbers = TextWithLineNumbers(input_frame)
-text_with_line_numbers.pack(side="top", fill="both", expand=True, padx=5, pady=5)
+text_with_line_numbers.pack(side="top", fill="both", expand=True)
+text_with_line_numbers.text.bind("<KeyRelease>", update_analysis)
 
 output_frame = tk.Frame(root)
 output_frame.pack(fill=tk.BOTH, pady=5)
@@ -213,13 +241,13 @@ output_frame.pack(fill=tk.BOTH, pady=5)
 lexeme_label = tk.Label(output_frame, text="Lexemes:")
 lexeme_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
 
-lexeme_text = tk.Text(output_frame, width=25, height=10)
+lexeme_text = tk.Text(output_frame, width=35, height=10)
 lexeme_text.grid(row=1, column=0, padx=5, pady=5)
 
 token_label = tk.Label(output_frame, text="Tokens:")
 token_label.grid(row=0, column=1, padx=5, pady=5, sticky="w")
 
-token_text = tk.Text(output_frame, width=25, height=10)
+token_text = tk.Text(output_frame, width=35, height=10)
 token_text.grid(row=1, column=1, padx=5, pady=5)
 
 error_label = tk.Label(output_frame, text="Errors:")
@@ -227,13 +255,5 @@ error_label.grid(row=0, column=2, padx=5, pady=5, sticky="w")
 
 error_text = tk.Text(output_frame, width=35, height=10)
 error_text.grid(row=1, column=2, padx=5, pady=5)
-
-program_label = tk.Label(output_frame, text="Program:")
-program_label.grid(row=0, column=3, padx=5, pady=5, sticky="w")
-
-program_text = tk.Text(output_frame, width=35, height=10)
-program_text.grid(row=1, column=3, padx=5, pady=5)
-
-text_with_line_numbers.text.bind("<KeyRelease>", update_analysis)
 
 root.mainloop()
